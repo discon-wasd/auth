@@ -1,6 +1,6 @@
+import { generateRandomName } from "@/lib/utils";
 import { relations } from "drizzle-orm";
 import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { generateRandomName } from "../../utils";
 import { accounts } from "./accounts";
 
 export const users = sqliteTable("users", {
