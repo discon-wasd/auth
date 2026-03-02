@@ -4,6 +4,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { authRoute } from "./features/auth/index";
 import { tokenRoute } from "./features/token/index";
+import { userRoute } from "./features/users";
 
 const app = new Hono();
 
@@ -15,6 +16,7 @@ app.get("/", (c) => {
 
 app.route("/auth", authRoute);
 app.route("/token", tokenRoute);
+app.route("/user", userRoute);
 
 if (process.env.NODE_ENV === "dev") {
     serve(

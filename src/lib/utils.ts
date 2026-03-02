@@ -1,8 +1,33 @@
+import z from "zod";
+
 export const generateBase64Token = (length = 128) => {
     const randomBytes = crypto.getRandomValues(new Uint8Array(length));
     const token = btoa(String.fromCharCode(...randomBytes));
     return token;
 };
+
+export const capitalizeString = (str: string) => {
+    return str
+        .toLowerCase()
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+};
+
+export const catchError = <T>(
+    promise: Promise<T>,
+): Promise<[undefined, T] | [Error]> => {
+    return promise
+        .then((data) => [undefined, data] as [undefined, T])
+        .catch((error) => {
+            if (error instanceof Error) {
+                return [error];
+            }
+            return [new Error(error as string)];
+        });
+};
+
+export const uuid = (name: string = "Id") => z.uuid(`${name} is not a uuid`);
 
 export function generateRandomName() {
     if (Math.random() < 0.000001) {

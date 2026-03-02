@@ -4,14 +4,13 @@ A lightweight REST api built with [Hono](https://hono.dev). Handles auth and let
 
 ## Endpoints
 
-- `POST /auth/login` - registers or logs in the user via Google(not implemented), Github(not implemented) or Email(not implemented)
+- `POST /auth/login` - registers or logs in the user via Google, Github or Email
 
-- `GET /auth/account`
-- `PATCH /auth/account` - update the account only if the account is registered by email and password
-- `DELETE /auth/account`
+- `GET /user/me`
+- `PATCH /user/me`
+- `DELETE /user/me`
 
-- `GET /auth/user`
-- `PATCH /auth/user`
+- `GET /user/[handle]`
 
 - `GET /auth/sessions`
 - `DELETE /auth/sessions/:sessionToken`

@@ -1,5 +1,7 @@
 import { relations } from "drizzle-orm";
 import { index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { createSelectSchema } from "drizzle-zod";
+import z, { uuid } from "zod";
 import { accounts } from "./accounts";
 
 export const sessions = sqliteTable(
@@ -27,3 +29,15 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
         references: [accounts.id],
     }),
 }));
+
+export const defaultSessionSchema = createSelectSchema(sessions, {
+    ipAddress: z.ipv4("IP is not an IP 😱"),
+
+    userAgent: z.string().min(1, "UserAgent can't be empty"),
+
+    token: z.base64("Token is not in a base64 format"),
+
+    accountId: uuid("Account Id"),
+
+    createdAt: z.date("Created At is not a date"),
+});
