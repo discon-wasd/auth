@@ -14,17 +14,19 @@ import { users } from "./users";
 export const accessTokens = sqliteTable(
     "access_tokens",
     {
-        token: text("token").unique(),
+        token: text("token").unique().notNull(),
         serverIP: text("server_ip").notNull(),
         userId: text("user_id")
             .references(() => users.id, { onDelete: "cascade" })
             .notNull(),
-        expiresAt: int("expires_at", { mode: "timestamp" })
-            .notNull()
-            .$default(() => new Date()),
         createdAt: int("created_at", { mode: "timestamp" })
             .notNull()
             .$default(() => new Date()),
+        expiresAt: int("expires_at", { mode: "timestamp" })
+            .notNull()
+            .$default(
+                () => new Date(Date.now() + 1000 * 60 * 60 * 24 * 31 * 1),
+            ),
     },
     (t) => [
         primaryKey({
@@ -46,7 +48,7 @@ export const accessTokensRelations = relations(accessTokens, ({ one }) => ({
 }));
 
 export const defaultAccessTokenSchema = createSelectSchema(accessTokens, {
-    serverIP: z.ipv4("Server IP is not an IP 😱"),
+    serverIP: z.url("Server IP is not an IP 😱"),
 
     token: z
         .string("Token is not a string")
