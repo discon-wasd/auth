@@ -1,7 +1,8 @@
+import { uuidSchema } from "@/lib/utils";
 import { relations } from "drizzle-orm";
 import { index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createSelectSchema } from "drizzle-zod";
-import z, { uuid } from "zod";
+import z from "zod";
 import { accounts } from "./accounts";
 
 export const sessions = sqliteTable(
@@ -37,7 +38,7 @@ export const defaultSessionSchema = createSelectSchema(sessions, {
 
     token: z.base64("Token is not in a base64 format"),
 
-    accountId: uuid("Account Id"),
+    accountId: uuidSchema("Account Id"),
 
     createdAt: z.date("Created At is not a date"),
 });

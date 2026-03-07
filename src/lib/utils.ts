@@ -27,7 +27,8 @@ export const catchError = <T>(
         });
 };
 
-export const uuid = (name: string = "Id") => z.uuid(`${name} is not a uuid`);
+export const uuidSchema = (name: string = "Id") =>
+    z.uuid(`${name} is not a uuid`);
 
 export function generateRandomName() {
     if (Math.random() < 0.000001) {

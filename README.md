@@ -10,13 +10,17 @@ A lightweight REST api built with [Hono](https://hono.dev). Handles auth and let
 - `PATCH /user/me`
 - `DELETE /user/me`
 
+- `GET /user/token/:token`
+
 - `GET /user/[handle]`
 
 - `GET /auth/sessions`
 - `DELETE /auth/sessions/:sessionToken`
 
-- `GET /token/verify/:ip/:token` - verify a token and return the user payload
-- `POST /token/create` - creates an access token based on a random string sent by the server and it's IP
+- `GET /server`
+- `POST /server`
+- `GET /server/[id]`
+- `GET /server/[id]/refresh-token`
 
 ## Setup
 
