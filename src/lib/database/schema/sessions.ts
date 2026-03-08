@@ -40,5 +40,5 @@ export const defaultSessionSchema = createSelectSchema(sessions, {
 
     accountId: uuidSchema("Account Id"),
 
-    createdAt: z.date("Created At is not a date"),
+    createdAt: z.iso.datetime("Created At is not a date"),
 });

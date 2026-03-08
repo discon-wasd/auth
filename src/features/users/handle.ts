@@ -1,30 +1,38 @@
-import { db } from "@/lib/database";
+import { preparedStatements } from "@/lib/database/prepared-statements";
 import { defaultUserSchema } from "@/lib/database/schema";
-import { sValidator } from "@hono/standard-validator";
-import { sql } from "drizzle-orm";
 import { Hono } from "hono";
+import { describeRoute, resolver, validator } from "hono-openapi";
 
-export const handleUserRoute = new Hono();
+const handleUserGetParamRequestSchema = defaultUserSchema.pick({
+    handle: true,
+});
 
-const userPreparedHandleStatement = db.query.users
-    .findFirst({
-        where: (t, { eq }) => eq(t.handle, sql.placeholder("handle")),
-    })
-    .prepare();
+const handleUserGetJsonResponseSchema = defaultUserSchema;
 
-handleUserRoute.get(
+export const handleUserRoute = new Hono().get(
     "/:handle",
-    sValidator(
-        "param",
-        defaultUserSchema.pick({
-            handle: true,
-        }),
-    ),
+    describeRoute({
+        tags: ["Users"],
+        summary: "Get user by handle",
+        description: "Returns a user profile by their handle.",
+        responses: {
+            200: {
+                description: "User found",
+                content: {
+                    "application/json": {
+                        schema: resolver(handleUserGetJsonResponseSchema),
+                    },
+                },
+            },
+            404: {
+                description: "User not found",
+            },
+        },
+    }),
+    validator("param", handleUserGetParamRequestSchema),
     async (c) => {
         const { handle } = c.req.valid("param");
-        const user = await userPreparedHandleStatement.get({
-            handle,
-        });
+        const user = await preparedStatements.user.findByHandle({ handle });
         return c.json(user);
     },
 );

@@ -3,8 +3,7 @@ import { handleUserRoute } from "./handle";
 import { meUserRoute } from "./me";
 import { tokenUserRoute } from "./token";
 
-export const userRoute = new Hono();
-
-userRoute.route("/me", meUserRoute);
-userRoute.route("/", handleUserRoute);
-userRoute.route("/token", tokenUserRoute)
+export const userRoute = new Hono()
+    .route("/me", meUserRoute)
+    .route("/", handleUserRoute)
+    .route("/token", tokenUserRoute);

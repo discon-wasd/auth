@@ -35,5 +35,5 @@ export const defaultAccountSchema = createSelectSchema(accounts, {
         "OAuthProvider is not valid",
     ),
 
-    createdAt: z.date("Created At is not a date"),
+    createdAt: z.iso.datetime("Created At is not a date"),
 });

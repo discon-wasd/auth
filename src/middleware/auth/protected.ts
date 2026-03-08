@@ -1,32 +1,13 @@
-import { db } from "@/lib/database";
 import {
     defaultAccountSchema,
     defaultSessionSchema,
     defaultUserSchema,
 } from "@/lib/database/schema";
 import { HTTP_STATUS } from "@/lib/status-codes";
-import { sql } from "drizzle-orm";
+import { preparedStatements } from "@/lib/database/prepared-statements";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import z from "zod";
-
-const userPreparedStatement = db.query.sessions
-    .findFirst({
-        columns: {},
-        with: {
-            account: {
-                columns: {
-                    createdAt: false,
-                },
-                with: {
-                    user: {},
-                },
-            },
-        },
-
-        where: (t, { eq }) => eq(t.token, sql.placeholder("token")),
-    })
-    .prepare();
 
 export type ProtectedContext = {
     sessionToken: string;
@@ -38,11 +19,14 @@ export const protectedMiddleware = () =>
     createMiddleware<{
         Variables: ProtectedContext;
     }>(async (c, next) => {
-        const rawToken = c.req.header("Authorization");
+        const rawToken = c.req
+            .header("Authorization")
+            ?.replace("Bearer ", "")
+            .trim();
 
         if (!rawToken) {
             throw new HTTPException(HTTP_STATUS["Unauthorized"], {
-                message: "Please login to use this api route",
+                message: "No authorization token provided",
             });
         }
 
@@ -53,23 +37,24 @@ export const protectedMiddleware = () =>
 
         if (!success) {
             throw new HTTPException(HTTP_STATUS["Bad Request"], {
-                message: "Authorization header formatted incorrectly",
+                message: "Authorization token is not a valid base64 string",
             });
         }
 
-        const session = await userPreparedStatement.get({
-            token,
-        });
+        const result =
+            await preparedStatements.session.findByTokenWithAccountAndUser({
+                token,
+            });
 
-        if (!session || !session.account.user) {
-            throw new HTTPException(HTTP_STATUS["Not Found"], {
-                message: "Your account does not exit",
+        if (!result) {
+            throw new HTTPException(HTTP_STATUS["Unauthorized"], {
+                message: "Session not found or has expired, please login again",
             });
         }
 
         c.set("sessionToken", token);
 
-        const { user, ...account } = session.account;
+        const { users: user, accounts: account } = result;
 
         c.set("user", user);
         c.set("account", account);

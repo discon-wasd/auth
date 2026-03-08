@@ -1,7 +1,9 @@
 import { db } from "@/lib/database";
+import { preparedStatements } from "@/lib/database/prepared-statements";
 import {
     accounts,
     defaultAccountSchema,
+    defaultSessionSchema,
     sessions,
     users,
 } from "@/lib/database/schema";
@@ -13,25 +15,42 @@ import {
     generateBase64Token,
     generateRandomName,
 } from "@/lib/utils";
-import { sValidator } from "@hono/standard-validator";
-import { sql } from "drizzle-orm";
 import { FirebaseAuthError } from "firebase-admin/auth";
 import { Hono } from "hono";
+import { describeRoute, resolver, validator } from "hono-openapi";
 import { HTTPException } from "hono/http-exception";
 
-export const loginRoute = new Hono();
+const loginPostJsonRequestSchema = defaultAccountSchema.pick({
+    oAuthId: true,
+    oAuthProvider: true,
+});
 
-const exitingAccountPrepared = db.query.accounts
-    .findFirst({
-        columns: {
-            id: true,
-        },
-        where: (t, { eq }) => eq(t.oAuthId, sql.placeholder("oAuthId")),
-    })
-    .prepare();
+const loginPostJsonResponseSchema = defaultSessionSchema.pick({ token: true });
 
-loginRoute.post(
+export const loginRoute = new Hono().post(
     "/",
+    describeRoute({
+        tags: ["Auth"],
+        summary: "Login",
+        description:
+            "Authenticates a user via OAuth. Creates a new account and user profile on first login, or creates a new session for existing accounts. Requires a valid Firebase OAuth ID.",
+        responses: {
+            200: {
+                description: "Session token returned on successful login",
+                content: {
+                    "application/json": {
+                        schema: resolver(loginPostJsonResponseSchema),
+                    },
+                },
+            },
+            400: {
+                description: "Already logged in (Authorization header present)",
+            },
+            401: {
+                description: "Firebase user not found for the given oAuthId",
+            },
+        },
+    }),
     async (c, next) => {
         const token = c.req.header("Authorization");
 
@@ -43,17 +62,11 @@ loginRoute.post(
 
         await next();
     },
-    sValidator(
-        "json",
-        defaultAccountSchema.pick({
-            oAuthId: true,
-            oAuthProvider: true,
-        }),
-    ),
+    validator("json", loginPostJsonRequestSchema),
     async (c) => {
         const body = c.req.valid("json");
 
-        const [firebaseError] = await catchError(
+        const [firebaseError, fireUser] = await catchError(
             fireAuth.getUser(body.oAuthId),
         );
 
@@ -73,7 +86,7 @@ loginRoute.post(
 
         const userAgent = c.req.header("user-agent") || "unknown";
 
-        const exitingAccount = await exitingAccountPrepared.get({
+        const exitingAccount = await preparedStatements.account.findByOAuthId({
             oAuthId: body.oAuthId,
         });
 
@@ -99,13 +112,16 @@ loginRoute.post(
         const [, , [session]] = await db.batch([
             db.insert(accounts).values({
                 id: accountId,
-                ...body,
+                oAuthId: body.oAuthId,
+                oAuthProvider: body.oAuthProvider,
             }),
 
             db.insert(users).values({
                 id: crypto.randomUUID(),
                 accountId,
-                name: capitalizeString(randomName.replaceAll("-", " ")),
+                name:
+                    fireUser?.displayName ??
+                    capitalizeString(randomName.replaceAll("-", " ")),
                 handle: randomName,
             }),
 

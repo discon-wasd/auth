@@ -1,38 +1,50 @@
-import { db } from "@/lib/database";
-import { defaultServerSchema } from "@/lib/database/schema";
+import { preparedStatements } from "@/lib/database/prepared-statements";
+import { defaultServerSchema, defaultUserSchema } from "@/lib/database/schema";
 import { HTTP_STATUS } from "@/lib/status-codes";
-import { sValidator } from "@hono/standard-validator";
-import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { describeRoute, resolver, validator } from "hono-openapi";
 
-export const tokenUserRoute = new Hono();
+const tokenUserPostJsonRequestSchema = defaultServerSchema.pick({
+    token: true,
+});
 
-const getUserFromTokenPrepared = db.query.servers
-    .findFirst({
-        where: (t, { eq }) => eq(t.token, sql.placeholder("token")),
-        with: {
-            user: true,
-        },
-    })
-    .prepare();
+const tokenUserPostJsonResponseSchema = defaultUserSchema;
 
-tokenUserRoute.post(
+export const tokenUserRoute = new Hono().post(
     "/",
-    sValidator("json", defaultServerSchema.pick({ token: true })),
+    describeRoute({
+        tags: ["Users"],
+        summary: "Get user by server token",
+        description: "Returns the user associated with the given server token.",
+        responses: {
+            200: {
+                description: "User found",
+                content: {
+                    "application/json": {
+                        schema: resolver(tokenUserPostJsonResponseSchema),
+                    },
+                },
+            },
+            404: {
+                description: "No user found for the given server token",
+            },
+        },
+    }),
+    validator("json", tokenUserPostJsonRequestSchema),
     async (c) => {
         const { token } = c.req.valid("json");
 
-        const server = await getUserFromTokenPrepared.get({
+        const result = await preparedStatements.server.findByTokenWithUser({
             token,
         });
 
-        if (!server) {
+        if (!result) {
             throw new HTTPException(HTTP_STATUS["Not Found"], {
                 message: "User not found",
             });
         }
 
-        return c.json(server.user);
+        return c.json(result.users);
     },
 );

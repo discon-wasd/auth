@@ -41,5 +41,5 @@ export const defaultServerSchema = createSelectSchema(servers, {
     secure: z.boolean().optional(),
     port: z.uint32("Port is not an uint").optional(),
     userId: uuidSchema("User Id"),
-    createdAt: z.date("Created At is not a date"),
+    createdAt: z.iso.datetime("Created At is not a date"),
 });
